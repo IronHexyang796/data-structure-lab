@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>像素农场 · 网页版</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <span class="logo"><i></i><i></i><i></i><i></i></span>
+    <div>
+      <h1>像素农场</h1>
+      <p class="sub">PIXEL FARM · 网页版</p>
+    </div>
+  </div>
+  <div class="hud">
+    <div class="stat"><span>第</span><b id="day">-</b><span>天</span></div>
+    <div class="stat"><b id="clock">--:--</b></div>
+    <div class="stat gold"><span>金币</span><b id="gold">-</b></div>
+    <div class="stat"><span>体力</span><b id="stamina">-</b></div>
+    <div class="stat cost" title="你的算法消耗掉的游戏时间">
+      <span>计算已耗</span><b id="cost">-</b>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ---------------- 左：农田 ---------------- -->
+  <section class="board">
+    <div class="board-head">
+      <h2>农田 6 × 6</h2>
+      <div class="legend">
+        <span><i class="c-wild"></i>荒地</span>
+        <span><i class="c-tilled"></i>已开垦</span>
+        <span><i class="c-grow"></i>生长中</span>
+        <span><i class="c-ripe"></i>成熟</span>
+        <span><i class="c-dead"></i>枯萎</span>
+      </div>
+    </div>
+    <div id="grid" class="grid"></div>
+
+    <div class="tools">
+      <div class="tool-info" id="cursorInfo">点一块地选中它</div>
+      <div class="btns">
+        <button data-act="till">开垦 <kbd>T</kbd></button>
+        <button data-act="sow">播种 <kbd>S</kbd></button>
+        <button data-act="water">浇水 <kbd>W</kbd></button>
+        <button data-act="harvest">收获 <kbd>H</kbd></button>
+        <button data-act="order" class="pri">交订单 <kbd>O</kbd></button>
+        <button data-act="sell">出货 <kbd>V</kbd></button>
+        <button data-act="nextday" class="ghost">睡觉 <kbd>N</kbd></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------------- 右：仓库 + 行情 ---------------- -->
+  <aside class="panel">
+    <div class="card">
+      <h3>仓库 <span class="tiny" id="barnCount">0 种</span></h3>
+      <div id="barn" class="barn"><p class="empty">空的</p></div>
+    </div>
+
+    <div class="card">
+      <h3>今日行情 <span class="tiny">点一行选种子</span></h3>
+      <div id="market" class="market"></div>
+    </div>
+
+    <div class="card mini">
+      <h3>你的算法代价</h3>
+      <div class="costbox">
+        <div><span>比较</span><b id="cmp">0</b><span>次</span></div>
+        <div><span>移动</span><b id="mov">0</b><span>次</span></div>
+      </div>
+      <p class="hint">1 次比较 = 0.05 秒游戏时间，1 次移动 = 0.10 秒。<br>
+      代码里的算法越慢，这一天就越短。</p>
+    </div>
+  </aside>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<p class="foot">
+  这个页面只负责「显示」和「点按钮」。真正的计算在 C 程序里 ——
+  <code>pf serve</code> 启动的就是它。
+</p>
+
+<script src="app.js"></script>
+</body>
+</html>

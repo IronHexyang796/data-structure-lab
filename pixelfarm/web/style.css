@@ -1,0 +1,315 @@
+/* ============================================================================
+ *  web/style.css  ——  像素农场网页版样式
+ *
+ *  想换配色，只改下面 :root 里那 6 个变量就行，其它都不用动。
+ *  没有用到任何图片：格子、圆角、阴影全是 CSS 画出来的，
+ *  所以在农村那种慢网络下也能秒开（整个页面不到 30 KB）。
+ * ========================================================================== */
+
+:root {
+  --soil:   #8b5e3c;   /* 泥土 */
+  --soil-d: #6b4423;   /* 泥土深色（边框） */
+  --grass:  #7fb356;   /* 作物绿 */
+  --grass-d:#5b8a37;
+  --wheat:  #d9a441;   /* 成熟黄 */
+  --water:  #8fc9d9;   /* 水蓝 */
+  --paper:  #fdfaf3;   /* 背景米白 */
+  --ink:    #2b2118;
+  --ink2:   #6b5c48;
+  --line:   #e6ddcd;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang SC",
+               "Microsoft YaHei", sans-serif;
+  background: var(--paper);
+  color: var(--ink);
+  line-height: 1.7;
+  padding: 20px;
+  background-image:
+    linear-gradient(rgba(230,221,205,.45) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(230,221,205,.45) 1px, transparent 1px);
+  background-size: 26px 26px;
+  min-height: 100vh;
+}
+
+/* ---------------------------------------------------------------- 顶栏 */
+header {
+  max-width: 1180px;
+  margin: 0 auto 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 20px;
+  box-shadow: 4px 4px 0 rgba(43,33,24,.06);
+}
+
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .logo {
+  width: 34px; height: 34px; flex: 0 0 34px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+  background: var(--soil); border: 2px solid var(--soil-d); border-radius: 4px;
+  padding: 2px;
+}
+.brand .logo i { display: block; border-radius: 1px; background: var(--grass); }
+.brand .logo i:nth-child(2) { background: #9cc96f; }
+.brand .logo i:nth-child(3) { background: #6d9e45; }
+.brand .logo i:nth-child(4) { background: var(--wheat); }
+.brand h1 { font-size: 21px; color: #2f5019; letter-spacing: -.3px; }
+.brand .sub {
+  font-size: 11px; color: #a89880; letter-spacing: 2px;
+  font-family: Consolas, monospace;
+}
+
+.hud { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.hud .stat {
+  background: #f6f2e9;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 5px 12px;
+  font-size: 13px;
+  color: var(--ink2);
+  display: flex; align-items: center; gap: 5px;
+}
+.hud .stat b { font-size: 16px; color: #2f5019; font-family: Consolas, monospace; }
+.hud .stat.gold b { color: #b45309; }
+.hud .stat.cost b { color: #b91c1c; }
+.hud .stat.cost { background: #fef2f2; border-color: #fecaca; }
+
+/* ---------------------------------------------------------------- 主区 */
+main {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 330px;
+  gap: 16px;
+  align-items: start;
+}
+
+.board, .card {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 8px;
+  box-shadow: 4px 4px 0 rgba(43,33,24,.06);
+}
+
+.board { padding: 16px 18px 18px; }
+
+.board-head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
+}
+.board-head h2 { font-size: 15px; color: var(--ink2); font-weight: 800; }
+
+.legend { display: flex; gap: 12px; font-size: 11.5px; color: #a89880; }
+.legend span { display: flex; align-items: center; gap: 4px; }
+.legend i {
+  width: 11px; height: 11px; border-radius: 2px; display: block;
+  border: 1px solid rgba(0,0,0,.12);
+}
+.c-wild   { background: #d8ccb8; }
+.c-tilled { background: #c9a227; }
+.c-grow   { background: var(--grass); }
+.c-ripe   { background: var(--wheat); }
+.c-dead   { background: #c0392b; }
+
+/* ---------------------------------------------------------------- 农田格子 */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+  max-width: 560px;
+  margin: 0 auto;
+}
+
+.plot {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 6px;
+  background: #d8ccb8;
+  border: 2px solid #b8a888;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform .1s, box-shadow .1s;
+  overflow: hidden;
+  user-select: none;
+}
+.plot:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,.12); }
+.plot.sel { outline: 3px solid #2563eb; outline-offset: 1px; z-index: 2; }
+
+.plot .icon {
+  font-size: 21px; font-weight: 900; line-height: 1;
+  color: rgba(255,255,255,.95);
+  text-shadow: 0 1px 3px rgba(0,0,0,.3);
+}
+.plot.s-wild .icon { font-size: 16px; color: #b09b7d; text-shadow: none; }
+.plot.s-tilled .icon { font-size: 0; }
+.plot .name {
+  font-size: 9.5px; color: #fff; margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(0,0,0,.4);
+  max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+}
+.plot .pct {
+  position: absolute; top: 2px; right: 4px;
+  font-size: 9px; color: rgba(255,255,255,.9);
+  font-family: Consolas, monospace;
+}
+
+/* 贴着底部的进度条 */
+.plot .bar {
+  position: absolute; left: 0; bottom: 0; height: 4px;
+  background: var(--grass-d);
+  transition: width .35s;
+}
+.plot .bar.water { background: var(--water); height: 3px; bottom: 4px; opacity: .85; }
+
+.plot.s-wild {
+  background: #d8ccb8;
+  border-color: #b8a888;
+  background-image: repeating-linear-gradient(45deg,
+    rgba(255,255,255,.14) 0 3px, transparent 3px 7px);
+}
+.plot.s-tilled {
+  background: var(--soil);
+  border-color: var(--soil-d);
+  /* 田垄：几道深色横线，一看就知道"这块地整理过了" */
+  background-image: repeating-linear-gradient(0deg,
+    rgba(0,0,0,.16) 0 2px, transparent 2px 8px);
+}
+.plot.s-seeded  { background: #6d8f4e; border-color: #4e6b34; }
+.plot.s-growing { background: var(--grass); border-color: var(--grass-d); }
+.plot.s-ripe {
+  background: linear-gradient(160deg, #e8b857, var(--wheat));
+  border-color: #a16207;
+  border-width: 3px;
+  animation: ripe 1.6s ease-in-out infinite;
+}
+.plot.s-dead    { background: #c0392b; border-color: #7f241a; opacity: .75; }
+
+@keyframes ripe {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217,164,65,.6); }
+  50%      { box-shadow: 0 0 0 6px rgba(217,164,65,0); }
+}
+
+/* ---------------------------------------------------------------- 工具栏 */
+.tools { margin-top: 16px; border-top: 2px dashed var(--line); padding-top: 14px; }
+
+.tool-info {
+  font-size: 13.5px; color: var(--ink2); min-height: 22px; margin-bottom: 10px;
+}
+.tool-info b { color: #2f5019; }
+
+.btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.btns button {
+  border: 2px solid var(--line);
+  background: #faf7f0;
+  color: var(--ink);
+  border-radius: 6px;
+  padding: 7px 14px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  transition: .12s;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btns button:hover { background: #f2ecdf; border-color: #c9bfa8; }
+.btns button:active { transform: translateY(1px); }
+.btns button.pri { background: #2f5019; color: #fff; border-color: #1f3710; }
+.btns button.pri:hover { background: #3d6a22; }
+.btns button.ghost { background: #fff; }
+.btns kbd {
+  font-family: Consolas, monospace; font-size: 10.5px;
+  background: rgba(0,0,0,.07); padding: 1px 5px; border-radius: 3px;
+}
+.btns .pri kbd { background: rgba(255,255,255,.22); }
+
+/* ---------------------------------------------------------------- 右侧面板 */
+.panel { display: flex; flex-direction: column; gap: 14px; }
+.card { padding: 14px 16px; }
+.card h3 {
+  font-size: 14px; color: #2f5019; font-weight: 800;
+  margin-bottom: 10px; display: flex; align-items: center; justify-content: space-between;
+}
+.card h3 .tiny {
+  font-size: 10.5px; color: #a89880; font-weight: 500; font-family: Consolas, monospace;
+}
+
+.barn { display: flex; flex-direction: column; gap: 5px; max-height: 150px; overflow-y: auto; }
+.barn .row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 13px; padding: 4px 8px; background: #faf7f0; border-radius: 4px;
+}
+.barn .row b { color: #b45309; font-family: Consolas, monospace; }
+.barn .empty { font-size: 12.5px; color: #b8a888; text-align: center; padding: 12px 0; }
+
+.market { display: flex; flex-direction: column; gap: 3px; max-height: 260px; overflow-y: auto; }
+.market .row {
+  display: grid; grid-template-columns: 1fr auto auto;
+  gap: 8px; align-items: center;
+  font-size: 12.5px; padding: 4px 8px; border-radius: 4px; cursor: pointer;
+  transition: .1s;
+}
+.market .row:hover { background: #f2ecdf; }
+.market .row.on { background: #eef6e3; outline: 1.5px solid var(--grass); }
+.market .row .nm { color: var(--ink); font-weight: 600; display: flex; align-items: center; gap: 6px; }
+.barn .row > span { display: flex; align-items: center; gap: 6px; }
+
+/* 那个小方块：作物名首字，用来当"图标" */
+.dot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 17px; height: 17px; border-radius: 3px;
+  background: var(--grass-d); color: #fff;
+  font-size: 10.5px; font-style: normal; font-weight: 800;
+  flex: 0 0 17px;
+}
+.market .row .d { color: #a89880; font-size: 11px; }
+.market .row .pr { color: #15803d; font-family: Consolas, monospace; font-weight: 700; }
+
+.costbox { display: flex; gap: 10px; margin-bottom: 8px; }
+.costbox > div {
+  flex: 1; background: #faf7f0; border-radius: 5px; padding: 8px;
+  text-align: center; font-size: 11px; color: #a89880;
+}
+.costbox b {
+  display: block; font-size: 17px; color: #b91c1c;
+  font-family: Consolas, monospace; line-height: 1.3;
+}
+.hint { font-size: 11.5px; color: #a89880; line-height: 1.65; }
+
+/* ---------------------------------------------------------------- 提示条 */
+.toast {
+  position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%) translateY(20px);
+  background: #2b2118; color: #fff; padding: 10px 22px; border-radius: 24px;
+  font-size: 13.5px; opacity: 0; pointer-events: none;
+  transition: .22s; max-width: 80vw; text-align: center; z-index: 99;
+  box-shadow: 0 8px 24px rgba(0,0,0,.22);
+}
+.toast.on { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+.foot {
+  max-width: 1180px; margin: 18px auto 0; text-align: center;
+  font-size: 11.5px; color: #a89880; line-height: 1.8;
+}
+.foot code {
+  font-family: Consolas, monospace; background: #f2ecdf;
+  padding: 1px 6px; border-radius: 3px; color: #92400e;
+}
+
+/* ---------------------------------------------------------------- 窄屏 */
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; }
+  .panel { flex-direction: row; flex-wrap: wrap; }
+  .panel .card { flex: 1 1 260px; }
+  .grid { max-width: 100%; }
+}

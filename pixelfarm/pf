@@ -1,0 +1,239 @@
+#!/usr/bin/env bash
+# ============================================================================
+#  像素农场 PIXEL FARM  ·  一键脚本（macOS / Linux / WSL）
+#
+#  用法和 Windows 的 pf.bat 完全一样：
+#
+#    ./pf              编译
+#    ./pf run          编译并进游戏
+#    ./pf test         跑全部测试
+#    ./pf test 3       只跑第 3 周那套
+#    ./pf demo         自动玩 30 天，出报告
+#    ./pf json         导出 web/data.json
+#    ./pf serve        启动网页版
+#    ./pf clean        清掉编译产物
+#    ./pf memcheck     内存检查（要有 valgrind）
+#    ./pf help
+#
+#  老师提供，不需要改。
+# ============================================================================
+
+set -u
+cd "$(dirname "$0")"
+
+CC=${CC:-gcc}
+CFLAGS="-std=c11 -Wall -Wextra -O2 -g -Iinclude -Iengine -D_POSIX_C_SOURCE=200809L"
+
+TASK=${1:-build}
+WEEK=${2:-}
+
+DEFS=""
+HAVE=""
+PEND=""
+for pair in field:FIELD growth:GROWTH undo:UNDO order:ORDER map:MAP \
+            tech:TECH huffman:HUFF road:ROAD path:PATH market:MARKET index:INDEX; do
+    name=${pair%%:*}
+    macro=${pair##*:}
+    if [ -f "src/$name.c" ]; then
+        DEFS="$DEFS -DPF_HAVE_$macro"
+        HAVE="$HAVE $name"
+    else
+        PEND="$PEND $name"
+    fi
+done
+
+ENG=$(ls engine/*.c)
+SRC=$(ls src/*.c)
+
+usage() {
+    echo ""
+    echo "  像素农场 · 命令"
+    echo "  ------------------------------------------------------"
+    echo "    ./pf              编译"
+    echo "    ./pf run          编译并进游戏"
+    echo "    ./pf test         跑全部测试"
+    echo "    ./pf test 3       只跑第 3 周那套测试"
+    echo "    ./pf demo         自动玩 30 天，出报告"
+    echo "    ./pf json         导出 web/data.json"
+    echo "    ./pf serve        启动网页版"
+    echo "    ./pf clean        清掉编译产物"
+    echo "    ./pf memcheck     内存检查（需要 valgrind）"
+    echo "  ------------------------------------------------------"
+    echo ""
+}
+
+need_cc() {
+    if ! command -v "$CC" >/dev/null 2>&1; then
+        echo ""
+        echo "  [错误] 找不到 $CC。"
+        echo "  macOS: xcode-select --install"
+        echo "  Ubuntu/Debian: sudo apt install build-essential"
+        echo "  详见《环境与集成手册》第 05 章。"
+        echo ""
+        exit 1
+    fi
+}
+
+build() {
+    need_cc
+    # shellcheck disable=SC2086
+    if ! $CC $CFLAGS $DEFS $ENG $SRC -o farm; then
+        echo ""
+        echo "  [失败] 编译没通过。看上面第一条 error。"
+        echo "         常见原因见 docs/环境问题.md"
+        echo ""
+        exit 1
+    fi
+}
+
+build_quiet() {
+    need_cc
+    # shellcheck disable=SC2086
+    if ! $CC $CFLAGS $DEFS $ENG $SRC -o farm; then
+        echo ""
+        echo "  [失败] 编译没通过，先把 error 改掉。"
+        echo ""
+        exit 1
+    fi
+}
+
+case "$TASK" in
+    help|-h|--help) usage; exit 0 ;;
+
+    clean)
+        rm -rf build farm
+        echo "  清理完成：build/ 和 farm 都删掉了"
+        exit 0 ;;
+
+    build)
+        echo ""
+        echo "  ------------------------------------------------------------"
+        echo "   像素农场 · 编译"
+        echo "  ------------------------------------------------------------"
+        echo "   引擎文件   engine/*.c"
+        echo "   你的文件   src/*.c"
+        [ -n "$HAVE" ] && echo "   已实现    $HAVE"
+        [ -n "$PEND" ] && echo "   还是临时版$PEND"
+        echo ""
+        build
+        echo ""
+        echo "  [成功] 生成了 farm"
+        echo "         进游戏      ./pf run"
+        echo "         跑测试      ./pf test"
+        echo ""
+        ;;
+
+    run)
+        build_quiet
+        echo "  方向键移动，? 看帮助，Q 退出。"
+        echo ""
+        ./farm ;;
+
+    demo)
+        build_quiet
+        ./farm --demo ;;
+
+    json)
+        build_quiet
+        mkdir -p web
+        ./farm --json web/data.json
+        echo "  已写入 web/data.json" ;;
+
+    serve)
+        build_quiet
+        echo "  浏览器打开  http://localhost:8080     （Ctrl+C 停止）"
+        ./farm --serve ;;
+
+    test)
+        mkdir -p build
+        PAT="t*"
+        if [ -n "$WEEK" ]; then
+            if [ "$WEEK" = "10" ]; then PAT="t10_*"; else PAT="t0${WEEK}_*"; fi
+        fi
+        LIST=$(ls tests/$PAT.c 2>/dev/null || true)
+        if [ -z "$LIST" ]; then
+            echo ""
+            echo "  [错误] 没找到 tests/$PAT.c"
+            echo ""
+            exit 1
+        fi
+
+        echo ""
+        echo "  ------------------------------------------------------------"
+        echo "   编译测试程序（tests/$PAT.c）"
+        echo "  ------------------------------------------------------------"
+        BAD=0
+        for f in $LIST; do
+            b="build/$(basename "${f%.c}")"
+            rm -f "$b"
+            echo "   [编译] $(basename "$f")"
+            # shellcheck disable=SC2086
+            if ! $CC $CFLAGS $DEFS "$f" engine/util.c engine/clock.c engine/json.c \
+                 engine/state.c $SRC -o "$b"; then
+                BAD=1
+            fi
+        done
+        if [ "$BAD" = "1" ]; then
+            echo ""
+            echo "  [失败] 有测试程序没编过。先把 error 改掉。"
+            echo ""
+            exit 1
+        fi
+
+        echo ""
+        echo "  ------------------------------------------------------------"
+        echo "   跑测试"
+        echo "  ------------------------------------------------------------"
+        for f in $LIST; do
+            b="build/$(basename "${f%.c}")"
+            [ -x "$b" ] || continue
+            echo ""
+            echo "   ================ $(basename "$f") ================"
+            "$b" || BAD=1
+        done
+
+        echo ""
+        if [ "$BAD" = "1" ]; then
+            echo "  ------------------------------------------------------------"
+            echo "   [没过] 上面有 [FAIL] 的项。逐条改，改完再跑。"
+            echo "  ------------------------------------------------------------"
+        else
+            echo "  ------------------------------------------------------------"
+            echo "   [全绿] 这一轮全部通过。"
+            echo "  ------------------------------------------------------------"
+        fi
+        echo "" ;;
+
+    bench)
+        need_cc
+        mkdir -p build out
+        echo ""
+        echo "  ------------------------------------------------------------"
+        echo "   build tools/bench.c  (week 9: 7 sorting algorithms)"
+        echo "  ------------------------------------------------------------"
+        # shellcheck disable=SC2086
+        $CC $CFLAGS $DEFS tools/bench.c engine/util.c engine/clock.c \
+            engine/json.c engine/state.c $SRC -o build/bench || exit 1
+        ./build/bench ;;
+
+    memcheck)
+        mkdir -p build
+        if ! command -v valgrind >/dev/null 2>&1; then
+            echo "  这台机器没有 valgrind。Linux 上： sudo apt install valgrind"
+            echo "  macOS 上 valgrind 很难装，直接用第 08 章的 gdb 办法。"
+            exit 1
+        fi
+        for f in tests/t*.c; do
+            b="build/$(basename "${f%.c}")"
+            # shellcheck disable=SC2086
+            $CC $CFLAGS $DEFS "$f" engine/util.c engine/clock.c engine/json.c \
+                engine/state.c $SRC -o "$b" || continue
+            echo "--- $(basename "$f") ---"
+            valgrind --leak-check=full --error-exitcode=9 -q "$b" || echo "  !! 有问题"
+        done ;;
+
+    *)
+        echo "  不认识的命令：$TASK"
+        usage
+        exit 1 ;;
+esac
